@@ -1,0 +1,14 @@
+# zap logger configuration
+zap:
+  level: 'info'
+
+# mysql configuration
+mysql:
+  path: '127.0.0.1:3306'
+  config: 'charset=utf8mb4&parseTime=True&loc=Local'
+  db-name: 'ykd'
+  username: 'root'
+  password: '123123'
+
+
+
