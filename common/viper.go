@@ -1,4 +1,4 @@
-package conf
+package common
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ var Config Server
 
 func InitViper() *viper.Viper {
 	var config string
-	config = "config/cfg.yaml"
+	config = "configs/config.yaml"
 	v := viper.New()
 	v.SetConfigFile(config) // 指定配置文件路径
 	err := v.ReadInConfig() // 读取配置文件

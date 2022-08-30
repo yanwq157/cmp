@@ -12,9 +12,4 @@
 ├── pkg            # 可供外部使用的 package
 └── web            # 前端
 
-
-配置文件
-日志
-路由
-api
-
+集群  node节点名称 数量 状态 CPU 内存 usgcpu usgmem 

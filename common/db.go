@@ -1,18 +1,20 @@
-package conf
+package common
 
 import (
-	"fmt"
+	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"os"
 	"time"
 )
 
-var db *gorm.DB
+var Db *gorm.DB
+var err error
 
 func InitDb() *gorm.DB {
 	m := Config.Mysql
 	dsn := m.Username + ":" + m.Password + "@tcp(" + m.Path + ")/" + m.Dbname + "?" + m.Config
-	db, err := gorm.Open(mysql.New(mysql.Config{
+	Db, err = gorm.Open(mysql.New(mysql.Config{
 		DSN:                       dsn,
 		DefaultStringSize:         256,   // string 类型字段的默认长度
 		DisableDatetimePrecision:  true,  // 禁用 datetime 精度，MySQL 5.6 之前的数据库不支持
@@ -21,14 +23,16 @@ func InitDb() *gorm.DB {
 		SkipInitializeWithVersion: false, // 根据当前 MySQL 版本自动配置
 	}), &gorm.Config{})
 	if err != nil {
-		fmt.Sprintf("数据库连接错误，请查看数据库配置")
+		Log.Error("mysql connection failed", zap.Any("err", err))
+		os.Exit(0)
+		return nil
 	}
-	sqlDB, _ := db.DB()
+	sqlDB, _ := Db.DB()
 	// SetMaxIdleConns 设置空闲连接池中连接的最大数量
 	sqlDB.SetMaxIdleConns(10)
 	// SetMaxOpenConns 设置打开数据库连接的最大数量。
 	sqlDB.SetMaxOpenConns(100)
 	// SetConnMaxLifetime 设置了连接可复用的最大时间。
 	sqlDB.SetConnMaxLifetime(time.Hour)
-	return db
+	return Db
 }
