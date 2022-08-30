@@ -10,7 +10,7 @@ import (
 
 var Log *zap.Logger
 
-func InitZap() {
+func InitZap() *zap.Logger {
 	// 1 日志输出路径
 	file, _ := os.OpenFile("./logs/cmp.log", os.O_APPEND|os.O_RDWR, 0744)
 	// 把文件对象做成WriteSyncer类型
@@ -22,9 +22,9 @@ func InitZap() {
 	// 3 创建core对象，指定encoder编码，WriteSyncer对象和日志级别
 	core := zapcore.NewCore(encoder, writeSyncer, zapcore.DebugLevel)
 	// 4 创建logger对象
-	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.DebugLevel))
-	Log = logger
-	//return Log
+	Log = zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.DebugLevel))
+	//Log = logger
+	return Log
 	//defer logger.Sync()
 
 }

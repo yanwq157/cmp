@@ -1,11 +1,5 @@
-package cluster
+package pkg
 
-//func GetClusterVersion(c *kubernetes.Clientset) (string, error) {
-//	version, err := c.ServerVersion()
+//func GetClusterVersion(*kubernetes.Clientset) (string, err) {
 //
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	return version.String(), nil
 //}

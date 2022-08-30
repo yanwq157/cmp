@@ -15,6 +15,8 @@ func AddCluster(c *gin.Context) {
 	if err != nil {
 		return
 	}
+	//client, err := pkg.GetK8sClient()
+
 	if err := service.CreateCluster(d); err != nil {
 		common.Log.Error("创建集群失败", zap.Any("err", err))
 		response.FailWithMessage(response.CreateK8SClusterError, "创建集群失败", c)
