@@ -12,4 +12,15 @@
 ├── pkg            # 可供外部使用的 package
 └── web            # 前端
 
-集群  node节点名称 数量 状态 CPU 内存 usgcpu usgmem 
+node 名称 标签 准备就绪 CPU 下限 (cores) CPU 上限 (cores) 内存下限 (bytes) 内存上限 (bytes) Pods 创建时间
+minikube
+beta.kubernetes.io/arch: amd64
+beta.kubernetes.io/os: linux
+kubernetes.io/arch: amd64
+True
+1.15 (28.75%)
+400.00m (10.00%)
+470.00Mi (5.98%)
+270.00Mi (3.43%)
+17 (15.45%)
+8 days ago

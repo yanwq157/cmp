@@ -14,6 +14,7 @@ func main() {
 	common.InitDb()    // gorm连接数据库
 
 	db, _ := common.Db.DB()
+	common.MysqlTables(common.Db) // 初始化表
 	defer func(db *sql.DB) {
 		err := db.Close()
 		if err != nil {

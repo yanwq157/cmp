@@ -19,10 +19,16 @@ func InitZap() *zap.Logger {
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoder := zapcore.NewConsoleEncoder(encoderConfig)
+	// 进入开发模式，日志输出到终端
+	consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
 	// 3 创建core对象，指定encoder编码，WriteSyncer对象和日志级别
-	core := zapcore.NewCore(encoder, writeSyncer, zapcore.DebugLevel)
+	core := zapcore.NewTee(
+		zapcore.NewCore(encoder, writeSyncer, zapcore.DebugLevel),
+		zapcore.NewCore(consoleEncoder, zapcore.Lock(os.Stdout), zapcore.DebugLevel),
+	)
+	//core := zapcore.NewCore(encoder, writeSyncer, zapcore.DebugLevel)
 	// 4 创建logger对象
-	Log = zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.DebugLevel))
+	Log = zap.New(core, zap.AddCaller())
 	//Log = logger
 	return Log
 	//defer logger.Sync()
