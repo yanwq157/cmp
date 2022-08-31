@@ -28,6 +28,7 @@ func AddCluster(c *gin.Context) {
 	if err != nil {
 		response.FailWithMessage(response.CreateK8SClusterError, "获取集群节点数量异常", c)
 	}
+	d.NodeNumber = number
 	if err := service.CreateCluster(d); err != nil {
 		common.Log.Error("创建集群失败", zap.Any("err", err))
 		response.FailWithMessage(response.CreateK8SClusterError, "创建集群失败", c)
