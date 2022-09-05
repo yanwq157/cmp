@@ -11,11 +11,18 @@ type Response struct {
 	Data   interface{} `json:"data"`
 	ErrMsg string      `json:"errMsg"`
 }
+type PageResult struct {
+	Data  interface{} `json:"data"`
+	Total int64       `json:"total"`
+	Page  int         `json:"page"`
+	Size  int         `json:"pageSize"`
+}
 
 const (
 	SUCCESS               = 0
 	ERROR                 = 1
 	CreateK8SClusterError = 7001
+	ParamError            = 8001
 	InternalServerError   = http.StatusInternalServerError
 )
 
@@ -24,6 +31,7 @@ const (
 	NotOkMsg                 = "操作失败"
 	InternalServerErrorMsg   = "服务器内部错误"
 	CreateK8SClusterErrorMsg = "创建K8S集群失败"
+	ParamErrorMsg            = "参数绑定失败, 请检查数据类型"
 )
 
 var CustomError = map[int]string{
@@ -31,6 +39,7 @@ var CustomError = map[int]string{
 	ERROR:                 NotOkMsg,
 	InternalServerError:   InternalServerErrorMsg,
 	CreateK8SClusterError: CreateK8SClusterErrorMsg,
+	ParamError:            ParamErrorMsg,
 }
 
 func ResultFail(code int, data interface{}, msg string, c *gin.Context) {
