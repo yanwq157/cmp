@@ -2,7 +2,7 @@ package cluster
 
 import (
 	"cmp/common"
-	"cmp/model"
+	"cmp/model/cluster"
 	"context"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,8 +26,8 @@ func GetClusterNumber(c *kubernetes.Clientset) (int, error) {
 	return len(number.Items), nil
 }
 
-func GetClusterInfo(c *kubernetes.Clientset) *model.ClusterNodesStatus {
-	var node model.ClusterNodesStatus
+func GetClusterInfo(c *kubernetes.Clientset) *cluster.ClusterStatus {
+	var node cluster.ClusterStatus
 
 	nodesList, err := c.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {

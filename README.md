@@ -11,16 +11,20 @@
 │   ├── middleware # 中间件
 ├── pkg            # 可供外部使用的 package
 └── web            # 前端
+list 名称 ip  状态 角色 cpu 内存
+Info
+基本信息
+名称 存活时间 标签 注释
 
-node 名称 标签 准备就绪 CPU 下限 (cores) CPU 上限 (cores) 内存下限 (bytes) 内存上限 (bytes) Pods 创建时间
-minikube
-beta.kubernetes.io/arch: amd64
-beta.kubernetes.io/os: linux
-kubernetes.io/arch: amd64
-True
-1.15 (28.75%)
-400.00m (10.00%)
-470.00Mi (5.98%)
-270.00Mi (3.43%)
-17 (15.45%)
-8 days ago
+系统信息
+系统架构 操作系统 操作系统内核  容器云runtime kubelt版本
+
+已分配资源
+cpureq lilmt  内存req limit pods
+
+健康状态  
+网络可用性 内存压力 磁盘压力 进程压力 节点就绪状态
+
+pod
+
+镜像 

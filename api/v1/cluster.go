@@ -3,8 +3,9 @@ package v1
 import (
 	"cmp/api/v1/response"
 	"cmp/common"
-	"cmp/model"
+	cluster2 "cmp/model/cluster"
 	"cmp/pkg/cluster"
+	"cmp/pkg/init"
 	"cmp/service"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -12,14 +13,14 @@ import (
 )
 
 func CreateCluster(c *gin.Context) {
-	d := model.Cluster{}
+	d := cluster2.Cluster{}
 	err := c.ShouldBindJSON(&d)
 	if err != nil {
 		return
 	}
 	fmt.Println(d.ConfigFileContentStr)
 
-	client, err := cluster.GetK8sClient(d.ConfigFileContentStr)
+	client, err := init.GetK8sClient(d.ConfigFileContentStr)
 	if err != nil {
 		response.FailWithMessage(response.CreateK8SClusterError, err.Error(), c)
 		return
@@ -51,12 +52,12 @@ func CreateCluster(c *gin.Context) {
 
 func ListCluster(c *gin.Context) {
 
-	query := model.PaginationQ{}
+	query := cluster2.PaginationQ{}
 	if c.ShouldBindQuery(&query) != nil {
 		response.FailWithMessage(response.ParamError, response.ParamErrorMsg, c)
 		return
 	}
-	var K8sCluster []model.Cluster
+	var K8sCluster []cluster2.Cluster
 	if err := service.ListCluster(&query, &K8sCluster); err != nil {
 		common.Log.Error("获取集群失败", zap.Any("err", err))
 		response.FailWithMessage(response.InternalServerError, "获取集群失败", c)
@@ -71,7 +72,7 @@ func ListCluster(c *gin.Context) {
 }
 func DelCluster(c *gin.Context) {
 
-	var id model.ClusterIds
+	var id cluster2.ClusterIds
 	err := c.ShouldBindJSON(&id)
 	if err != nil {
 		return
@@ -87,7 +88,7 @@ func DelCluster(c *gin.Context) {
 }
 func GetK8SClusterDetail(c *gin.Context) {
 
-	client, err := cluster.ClusterID(c)
+	client, err := init.GetClusterId(c)
 	if err != nil {
 		response.FailWithMessage(response.InternalServerError, err.Error(), c)
 		return

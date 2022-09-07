@@ -1,4 +1,4 @@
-package model
+package cluster
 
 import "gorm.io/gorm"
 
@@ -14,7 +14,7 @@ type Cluster struct {
 type ClusterIds struct {
 	Data interface{} `json:"clusterIds"`
 }
-type ClusterNodesStatus struct {
+type ClusterStatus struct {
 	TotalNodeNum      int     `json:"totalNodeNum"`
 	ReadyNodeNum      int     `json:"readyNodeNum"`
 	UnReadyNodeNum    int     `json:"unreadyNodeNum"`

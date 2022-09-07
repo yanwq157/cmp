@@ -1,4 +1,4 @@
-package cluster
+package init
 
 import (
 	"cmp/common"
@@ -25,8 +25,8 @@ func GetK8sClient(k8sConf string) (*kubernetes.Clientset, error) {
 	return clientSet, err
 }
 
-// ClusterID 公共方法, 获取指定k8s集群的KubeConfig
-func ClusterID(c *gin.Context) (*kubernetes.Clientset, error) {
+// GetClusterId 公共方法, 获取指定k8s集群的KubeConfig
+func GetClusterId(c *gin.Context) (*kubernetes.Clientset, error) {
 
 	clusterId := c.DefaultQuery("clusterId", "1")
 	clusterIdUint, err := strconv.ParseUint(clusterId, 10, 32)
