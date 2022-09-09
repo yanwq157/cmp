@@ -14,6 +14,7 @@ func InitContainerRouter(r *gin.RouterGroup) {
 		K8sClusterRouter.GET("cluster/detail", v1.GetK8SClusterDetail)
 
 		K8sClusterRouter.GET("node", v1.GetNodes)
+		K8sClusterRouter.GET("node/detail", v1.GetNodeDetail)
 
 	}
 }

@@ -3,9 +3,9 @@ package v1
 import (
 	"cmp/api/v1/response"
 	"cmp/common"
-	cluster2 "cmp/model/cluster"
+	cluster2 "cmp/model/k8s"
+	"cmp/pkg"
 	"cmp/pkg/cluster"
-	"cmp/pkg/init"
 	"cmp/service"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -20,7 +20,7 @@ func CreateCluster(c *gin.Context) {
 	}
 	fmt.Println(d.ConfigFileContentStr)
 
-	client, err := init.GetK8sClient(d.ConfigFileContentStr)
+	client, err := pkg.GetK8sClient(d.ConfigFileContentStr)
 	if err != nil {
 		response.FailWithMessage(response.CreateK8SClusterError, err.Error(), c)
 		return
@@ -88,7 +88,7 @@ func DelCluster(c *gin.Context) {
 }
 func GetK8SClusterDetail(c *gin.Context) {
 
-	client, err := init.GetClusterId(c)
+	client, err := pkg.GetClusterId(c)
 	if err != nil {
 		response.FailWithMessage(response.InternalServerError, err.Error(), c)
 		return

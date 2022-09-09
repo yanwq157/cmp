@@ -1,4 +1,4 @@
-package init
+package pkg
 
 import (
 	"cmp/common"

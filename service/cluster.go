@@ -2,15 +2,15 @@ package service
 
 import (
 	"cmp/common"
-	"cmp/model/cluster"
+	"cmp/model/k8s"
 	"gorm.io/gorm"
 )
 
-func CreateCluster(cluster cluster.Cluster) (err error) {
+func CreateCluster(cluster k8s.Cluster) (err error) {
 	err = common.Db.Create(&cluster).Error
 	return
 }
-func ListCluster(p *cluster.PaginationQ, k *[]cluster.Cluster) (err error) {
+func ListCluster(p *k8s.PaginationQ, k *[]k8s.Cluster) (err error) {
 	if p.Page < 1 {
 		p.Page = 1
 	}
@@ -26,15 +26,15 @@ func ListCluster(p *cluster.PaginationQ, k *[]cluster.Cluster) (err error) {
 	return nil
 }
 
-func DelCluster(ids cluster.ClusterIds) (err error) {
-	var k cluster.Cluster
+func DelCluster(ids k8s.ClusterIds) (err error) {
+	var k k8s.Cluster
 	err2 := common.Db.Delete(&k, ids.Data)
 	if err2.Error != nil {
 		return err2.Error
 	}
 	return nil
 }
-func GetK8sClusterID(id uint) (K8sCluster cluster.Cluster, err error) {
+func GetK8sClusterID(id uint) (K8sCluster k8s.Cluster, err error) {
 	err = common.Db.Where("id = ?", id).First(&K8sCluster).Error
 	if err != nil {
 		return K8sCluster, err
