@@ -5,6 +5,7 @@ import (
 	"cmp/model/k8s"
 	pkgcommon "cmp/pkg/common"
 	"cmp/pkg/event"
+	"cmp/pkg/evict"
 	"context"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
@@ -229,4 +230,36 @@ func toNodeDetail(node v1.Node, pods *v1.PodList, eventList *v1.EventList, alloc
 		NodeIP:          k8s.NodeIP(getNodeIP(node)),
 		UID:             k8s.UID(node.UID),
 	}
+}
+
+func NodeUnschedulable(client *kubernetes.Clientset, nodeName string, unschdulable bool) (bool, error) {
+	//设置节点是否可调度
+	common.Log.Info(fmt.Sprintf("设置Node节点:%v 不可调度:%v", nodeName, unschdulable))
+	node, err := client.CoreV1().Nodes().Get(context.TODO(), nodeName, metaV1.GetOptions{})
+	if err != nil {
+		common.Log.Error(fmt.Sprintf("get node err: %v", err.Error()))
+		return false, err
+	}
+	node.Spec.Unschedulable = unschdulable
+	_, err = client.CoreV1().Nodes().Update(context.TODO(), node, metaV1.UpdateOptions{})
+	if err != nil {
+		common.Log.Error(fmt.Sprintf("设置节点调度失败:%v", err.Error()))
+		return false, err
+	}
+	return true, nil
+}
+
+func CordonNode(client *kubernetes.Clientset, nodeName string) (bool, error) {
+	//排空节点
+	_, err := NodeUnschedulable(client, nodeName, true)
+	if err != nil {
+		return false, nil
+	}
+	//驱逐节点上不在 kube-system 命名空间中的所有 pod
+	err = evict.EvictsNodePods(client, nodeName)
+	if err != nil {
+		common.Log.Error(fmt.Sprintf("排空节点出现异常: %v", err.Error()))
+		return false, err
+	}
+	return true, nil
 }

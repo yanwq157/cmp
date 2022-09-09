@@ -37,3 +37,43 @@ func GetNodeDetail(c *gin.Context) {
 	response.OkWithDetailed(data, "操作成功", c)
 	return
 }
+
+type Status struct {
+	NodeName    string `json:"node_name"`
+	Unscheduled bool   `json:"unscheduled"`
+}
+
+func NodeUnschedulable(c *gin.Context) {
+	var nodeUnscheduled Status
+	err := c.ShouldBindJSON(&nodeUnscheduled)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	client, err := pkg.GetClusterId(c)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	data, err := node.NodeUnschedulable(client, nodeUnscheduled.NodeName, nodeUnscheduled.Unscheduled)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	response.OkWithDetailed(data, "操作成功", c)
+	return
+}
+
+func CordonNode(c *gin.Context) {
+	nodeName := c.Query("node_name")
+	client, err := pkg.GetClusterId(c)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	if ok, err := node.CordonNode(client, nodeName); !ok {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	response.Ok(c)
+}
