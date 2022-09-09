@@ -3,7 +3,7 @@ package v1
 import (
 	"cmp/api/v1/response"
 	"cmp/common"
-	cluster2 "cmp/model/k8s"
+	"cmp/model/k8s"
 	"cmp/pkg"
 	"cmp/pkg/cluster"
 	"cmp/service"
@@ -13,12 +13,11 @@ import (
 )
 
 func CreateCluster(c *gin.Context) {
-	d := cluster2.Cluster{}
+	d := k8s.Cluster{}
 	err := c.ShouldBindJSON(&d)
 	if err != nil {
 		return
 	}
-	fmt.Println(d.ConfigFileContentStr)
 
 	client, err := pkg.GetK8sClient(d.ConfigFileContentStr)
 	if err != nil {
@@ -52,12 +51,12 @@ func CreateCluster(c *gin.Context) {
 
 func ListCluster(c *gin.Context) {
 
-	query := cluster2.PaginationQ{}
+	query := k8s.PaginationQ{}
 	if c.ShouldBindQuery(&query) != nil {
 		response.FailWithMessage(response.ParamError, response.ParamErrorMsg, c)
 		return
 	}
-	var K8sCluster []cluster2.Cluster
+	var K8sCluster []k8s.Cluster
 	if err := service.ListCluster(&query, &K8sCluster); err != nil {
 		common.Log.Error("获取集群失败", zap.Any("err", err))
 		response.FailWithMessage(response.InternalServerError, "获取集群失败", c)
@@ -72,7 +71,7 @@ func ListCluster(c *gin.Context) {
 }
 func DelCluster(c *gin.Context) {
 
-	var id cluster2.ClusterIds
+	var id k8s.ClusterIds
 	err := c.ShouldBindJSON(&id)
 	if err != nil {
 		return
