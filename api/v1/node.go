@@ -5,6 +5,7 @@ import (
 	"cmp/pkg"
 	"cmp/pkg/node"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 func GetNodes(c *gin.Context) {
@@ -25,7 +26,7 @@ func GetNodes(c *gin.Context) {
 
 func GetNodeDetail(c *gin.Context) {
 	client, err := pkg.GetClusterId(c)
-	name := c.Query("node_name")
+	name := c.Query("nodeName")
 	if err != nil {
 		response.FailWithMessage(response.InternalServerError, err.Error(), c)
 	}
@@ -39,7 +40,7 @@ func GetNodeDetail(c *gin.Context) {
 }
 
 type Status struct {
-	NodeName    string `json:"node_name"`
+	NodeName    string `json:"nodeName"`
 	Unscheduled bool   `json:"unscheduled"`
 }
 
@@ -55,7 +56,7 @@ func NodeUnschedulable(c *gin.Context) {
 		response.FailWithMessage(response.InternalServerError, err.Error(), c)
 		return
 	}
-	data, err := node.NodeUnschedulable(client, nodeUnscheduled.NodeName, nodeUnscheduled.Unscheduled)
+	data, err := node.K8sNodeUnschedulable(client, nodeUnscheduled.NodeName, nodeUnscheduled.Unscheduled)
 	if err != nil {
 		response.FailWithMessage(response.InternalServerError, err.Error(), c)
 		return
@@ -65,13 +66,79 @@ func NodeUnschedulable(c *gin.Context) {
 }
 
 func CordonNode(c *gin.Context) {
-	nodeName := c.Query("node_name")
+	nodeName := c.Query("nodeName")
 	client, err := pkg.GetClusterId(c)
 	if err != nil {
 		response.FailWithMessage(response.InternalServerError, err.Error(), c)
 		return
 	}
 	if ok, err := node.CordonNode(client, nodeName); !ok {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	response.Ok(c)
+}
+
+func RemoveNode(c *gin.Context) {
+	nodeName := c.Query("nodeName")
+	if nodeName == "" {
+		response.FailWithMessage(http.StatusNotFound, "移除节点名称不能为空", c)
+		return
+	}
+
+	client, err := pkg.GetClusterId(c)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	go func() {
+		_, err := node.RemoveNode(client, nodeName)
+		if err != nil {
+
+		}
+	}()
+	response.Ok(c)
+}
+
+type collectionNode struct {
+	NodeName []string `json:"nodeName"`
+}
+
+func CollectionNodeUnschedule(c *gin.Context) {
+	var nodeUnscheduled collectionNode
+	err := c.ShouldBindJSON(&nodeUnscheduled)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	client, err := pkg.GetClusterId(c)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	err = node.CollectionNodeUnschedule(client, nodeUnscheduled.NodeName)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	response.Ok(c)
+	return
+}
+
+func CollectionCordonNode(c *gin.Context) {
+	var nodeUnscheduled collectionNode
+	err := c.ShouldBindJSON(&nodeUnscheduled)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	client, err := pkg.GetClusterId(c)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	err2 := node.CollectionCordonNode(client, nodeUnscheduled.NodeName)
+	if err2 != nil {
 		response.FailWithMessage(response.InternalServerError, err.Error(), c)
 		return
 	}
