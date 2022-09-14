@@ -249,8 +249,8 @@ func NodeUnschedulable(client *kubernetes.Clientset, nodeName string, unschdulab
 	return true, nil
 }
 
+// CordonNode 选择排空节点（同时设置为不可调度），在后续进行应用部署时，则Pod不会再调度到该节点，并且该节点上由DaemonSet控制的Pod不会被排空。
 func CordonNode(client *kubernetes.Clientset, nodeName string) (bool, error) {
-	//排空节点
 	_, err := NodeUnschedulable(client, nodeName, true)
 	if err != nil {
 		return false, nil

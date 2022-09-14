@@ -25,7 +25,7 @@ func GetNodes(c *gin.Context) {
 
 func GetNodeDetail(c *gin.Context) {
 	client, err := pkg.GetClusterId(c)
-	name := c.Query("name")
+	name := c.Query("node_name")
 	if err != nil {
 		response.FailWithMessage(response.InternalServerError, err.Error(), c)
 	}
