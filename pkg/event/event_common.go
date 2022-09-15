@@ -17,3 +17,6 @@ func GetNodeEvents(client *kubernetes.Clientset, nodeName string) (*v1.EventList
 	}
 	return events, nil
 }
+
+var FailedReasonPartials = []string{"failed", "err", "exceeded", "invalid", "unhealthy",
+	"mismatch", "insufficient", "conflict", "outof", "nil", "backoff"}

@@ -91,12 +91,7 @@ func RemoveNode(c *gin.Context) {
 		response.FailWithMessage(response.InternalServerError, err.Error(), c)
 		return
 	}
-	go func() {
-		_, err := node.RemoveNode(client, nodeName)
-		if err != nil {
-
-		}
-	}()
+	go node.RemoveNode(client, nodeName)
 	response.Ok(c)
 }
 

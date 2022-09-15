@@ -2,6 +2,10 @@ package k8s
 
 import "time"
 
+type ListMeta struct {
+	TotalItems int `json:"totalItems"`
+}
+
 type ObjectMeta struct {
 	Name              string            `json:"name,omitempty"`
 	Namespace         string            `json:"namespace,omitempty"`

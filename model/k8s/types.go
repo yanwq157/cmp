@@ -2,6 +2,8 @@ package k8s
 
 import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 func NewObjectMeta(k8SObjectMeta metaV1.ObjectMeta) ObjectMeta {
@@ -20,3 +22,15 @@ func NewTypeMeta(kind ResourceKind) TypeMeta {
 		Kind: kind,
 	}
 }
+
+//列出所有资源而不进行任何过滤
+var ListEverything = metaV1.ListOptions{
+	//通过标签限制返回对象列表的选择器。默认为一切
+	LabelSelector: labels.Everything().String(),
+	//通过字段限制返回对象列表的选择器。默认为一切
+	FieldSelector: fields.Everything().String(),
+}
+
+const (
+	ResourceKindDeployment = "deployment"
+)

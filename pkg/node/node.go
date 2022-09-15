@@ -14,7 +14,8 @@ import (
 )
 
 type K8sNodeList struct {
-	Nodes []Node `json:"nodes"`
+	Nodes    []Node       `json:"nodes"`
+	ListMeta k8s.ListMeta `json:"listMeta"`
 }
 type Node struct {
 	ObjectMeta         k8s.ObjectMeta             `json:"objectMeta"`
