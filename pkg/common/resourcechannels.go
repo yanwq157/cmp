@@ -32,7 +32,8 @@ func GetEventListChannelWithOptions(client client.Interface, nsQuery *NamespaceQ
 		list, err := client.CoreV1().Events(nsQuery.ToRequestParam()).List(context.TODO(), options)
 		var filteredItems []v1.Event
 		for _, item := range list.Items {
-			if nsQuery.Matcher(item.ObjectMeta.Namespace) {
+			//查询的namespace和deployment隶属的namespace匹配返回true  空是全部namespace 返回true
+			if nsQuery.Matches(item.ObjectMeta.Namespace) {
 				filteredItems = append(filteredItems, item)
 			}
 		}
@@ -62,7 +63,7 @@ func GetPodListChannelWithOptions(client client.Interface, nsQuery *NamespaceQue
 		list, err := client.CoreV1().Pods(nsQuery.ToRequestParam()).List(context.TODO(), options)
 		var filteredItems []v1.Pod
 		for _, item := range list.Items {
-			if nsQuery.Matcher(item.ObjectMeta.Namespace) {
+			if nsQuery.Matches(item.ObjectMeta.Namespace) {
 				filteredItems = append(filteredItems, item)
 			}
 		}
@@ -91,7 +92,9 @@ func GetDeploymentListChannel(client client.Interface, nsQuery *NamespaceQuery, 
 		list, err := client.AppsV1().Deployments(nsQuery.ToRequestParam()).List(context.TODO(), k8s.ListEverything)
 		var filteredItems []apps.Deployment
 		for _, item := range list.Items {
-			filteredItems = append(filteredItems, item)
+			if nsQuery.Matches(item.ObjectMeta.Namespace) {
+				filteredItems = append(filteredItems, item)
+			}
 		}
 		list.Items = filteredItems
 		for i := 0; i < numReads; i++ {
@@ -119,7 +122,7 @@ func GetReplicaSetListChannelWithOptions(client client.Interface, nsQuery *Names
 		list, err := client.AppsV1().ReplicaSets(nsQuery.ToRequestParam()).List(context.TODO(), options)
 		var filteredItems []apps.ReplicaSet
 		for _, item := range list.Items {
-			if nsQuery.Matcher(item.ObjectMeta.Namespace) {
+			if nsQuery.Matches(item.ObjectMeta.Namespace) {
 				filteredItems = append(filteredItems, item)
 			}
 		}

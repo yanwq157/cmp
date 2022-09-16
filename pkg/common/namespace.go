@@ -14,8 +14,8 @@ func (n *NamespaceQuery) ToRequestParam() string {
 	return api.NamespaceAll
 }
 
-//传的namespaces和此查询配合返回true
-func (n *NamespaceQuery) Matcher(namespaces string) bool {
+//传的namespaces和查询匹配返回true
+func (n *NamespaceQuery) Matches(namespaces string) bool {
 	if len(n.Namespace) == 0 {
 		return true
 	}
