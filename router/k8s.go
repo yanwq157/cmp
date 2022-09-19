@@ -23,6 +23,7 @@ func InitContainerRouter(r *gin.RouterGroup) {
 
 		//查，删，更新，详情，控制器，回滚
 		K8sClusterRouter.GET("deployment", v1.GetDeploymentList)
+		K8sClusterRouter.POST("deployment/delete", v1.DeleteCollectionDeployment)
 
 	}
 }

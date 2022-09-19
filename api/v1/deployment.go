@@ -27,3 +27,7 @@ func GetDeploymentList(c *gin.Context) {
 	return
 
 }
+
+func DeleteCollectionDeployment(c *gin.Context) {
+
+}
