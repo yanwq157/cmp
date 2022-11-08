@@ -30,7 +30,7 @@ type nodeAllocatedResources struct {
 	PodFraction            float64 `json:"podFraction"`
 }
 
-type nodeDetail struct {
+type NodeDetail struct {
 	// Extends list item structure.
 	Node `json:",inline"`
 	// PodCIDR represents the pod IP range assigned to the node.
@@ -58,7 +58,7 @@ type nodeDetail struct {
 	UID       k8s.UID            `json:"uid"`
 }
 
-func GetNodeDetail(client *kubernetes.Clientset, name string) (*nodeDetail, error) {
+func GetNodeDetail(client *kubernetes.Clientset, name string) (*NodeDetail, error) {
 	common.Log.Info(fmt.Sprintf("Getting details of %s node", name))
 	node, err := client.CoreV1().Nodes().Get(context.TODO(), name, metaV1.GetOptions{})
 	if err != nil {
@@ -208,8 +208,8 @@ func maxResourceList(list, new v1.ResourceList) {
 	}
 }
 
-func toNodeDetail(node v1.Node, pods *v1.PodList, eventList *v1.EventList, allocatedResources nodeAllocatedResources) nodeDetail {
-	return nodeDetail{
+func toNodeDetail(node v1.Node, pods *v1.PodList, eventList *v1.EventList, allocatedResources nodeAllocatedResources) NodeDetail {
+	return NodeDetail{
 		Node: Node{
 			ObjectMeta:         k8s.NewObjectMeta(node.ObjectMeta),
 			TypeMeta:           k8s.NewTypeMeta("node"),

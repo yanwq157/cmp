@@ -4,7 +4,7 @@ import v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // Condition represents a single condition of a pod or node.
 type Condition struct {
-	// Type of a condition.
+	// Type of condition.
 	Type string `json:"type"`
 	// Status of a condition.
 	Status v1.ConditionStatus `json:"status"`

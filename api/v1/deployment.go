@@ -2,10 +2,16 @@ package v1
 
 import (
 	"cmp/api/v1/response"
+	"cmp/common"
+	"cmp/model/k8s"
 	"cmp/pkg"
 	"cmp/pkg/deployment"
 	"cmp/pkg/parser"
+	"cmp/pkg/service"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+	"net/http"
 )
 
 func GetDeploymentList(c *gin.Context) {
@@ -29,5 +35,112 @@ func GetDeploymentList(c *gin.Context) {
 }
 
 func DeleteCollectionDeployment(c *gin.Context) {
+	client, err := pkg.GetClusterId(c)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	var deploymentList []k8s.RemoveDeploymentData
+	err = c.ShouldBindJSON(&deploymentList)
+	if err != nil {
+		response.FailWithMessage(http.StatusNotFound, err.Error(), c)
+	}
+	err = deployment.DeleteCollectionDeployment(client, deploymentList)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	response.Ok(c)
+	return
+}
 
+func DeleteDeployment(c *gin.Context) {
+	client, err := pkg.GetClusterId(c)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	var deploymentData k8s.RemoveDeploymentToServiceData
+	err2 := c.ShouldBindJSON(&deploymentData)
+	if err2 != nil {
+		response.FailWithMessage(http.StatusNotFound, err2.Error(), c)
+		return
+	}
+
+	err = deployment.DeleteDeployment(client, deploymentData.Namespace, deploymentData.DeploymentName)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	common.Log.Info(fmt.Sprintf("deployment:%v已删除", deploymentData.DeploymentName))
+
+	if deploymentData.IsDeleteService {
+		serviceErr := service.DeleteService(client, deploymentData.Namespace, deploymentData.ServiceName)
+		if serviceErr != nil {
+			common.Log.Error("删除相关Service出错", zap.Any("err: ", serviceErr))
+			response.FailWithMessage(response.InternalServerError, err.Error(), c)
+			return
+		}
+	}
+	response.Ok(c)
+	return
+}
+
+func ScaleDeployment(c *gin.Context) {
+	client, err := pkg.GetClusterId(c)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+
+	var scaleData k8s.ScaleDeployment
+	err2 := c.ShouldBindJSON(&scaleData)
+	if err2 != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	err = deployment.ScaleDeployment(client, scaleData.Namespace, scaleData.DeploymentName, *scaleData.ScaleNumber)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	response.Ok(c)
+	return
+}
+
+func DetailDeploymentController(c *gin.Context) {
+	client, err := pkg.GetClusterId(c)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	namespace := parser.ParseNamespaceParameter(c)
+	name := parser.ParseNameParameter(c)
+
+	data, err := deployment.GetDeploymentDetail(client, namespace, name)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	response.OkWithDetailed(data, "操作成功", c)
+}
+
+func RestartDeploymentController(c *gin.Context) {
+	client, err := pkg.GetClusterId(c)
+	if err != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	var restartDeployment k8s.RestartDeployment
+	err2 := c.ShouldBindJSON(&restartDeployment)
+	if err2 != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+		return
+	}
+	err3 := deployment.RestartDeployment(client, restartDeployment.Namespace, restartDeployment.Deployment)
+	if err3 != nil {
+		response.FailWithMessage(response.InternalServerError, err.Error(), c)
+	}
+	response.Ok(c)
+	return
 }

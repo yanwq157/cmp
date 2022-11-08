@@ -5,8 +5,13 @@ import (
 	"cmp/model/k8s"
 	k8scommon "cmp/pkg/common"
 	"cmp/pkg/event"
+	"context"
+	"fmt"
+	"go.uber.org/zap"
 	apps "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -81,7 +86,7 @@ func toDeploymentList(deployments []apps.Deployment, pods []v1.Pod, events []v1.
 	// 过滤
 	//nodeCells, filteredTotal := dataselect.GenericDataSelectWithFilter(toCells(nodes), dataSelect)
 	//nodes = fromCells(nodeCells)
-	// 更新node数量, filteredTotal过滤后的数量
+	// 更新node数量, filteredTotalcurl 过滤后的数量
 	//nodeList.ListMeta = k8s.ListMeta{TotalItems: filteredTotal}
 	//deploymentCells, filteredTotal := dataselect.GenericDataSelectWithFilter(toCells(deployments), dsQuery)
 	//deployments = fromCells(deploymentCells)
@@ -113,4 +118,62 @@ func getDeploymentStatus(deployment *apps.Deployment) DeploymentStatus {
 		AvailableReplicas:   deployment.Status.AvailableReplicas,
 		UnavailableReplicas: deployment.Status.UnavailableReplicas,
 	}
+}
+
+func DeleteCollectionDeployment(client *kubernetes.Clientset, deploymentList []k8s.RemoveDeploymentData) (err error) {
+	common.Log.Info("批量删除deployment开始")
+	for _, v := range deploymentList {
+		common.Log.Info(fmt.Sprintf("delete deployment:%v,ns:%v", v.DeploymentName, v.Namespace))
+		err := client.AppsV1().Deployments(v.Namespace).Delete(
+			context.TODO(),
+			v.DeploymentName,
+			metav1.DeleteOptions{},
+		)
+		if err != nil {
+			common.Log.Error(err.Error())
+			return err
+		}
+	}
+	common.Log.Info("删除deployment已完成")
+	return nil
+}
+
+func DeleteDeployment(client *kubernetes.Clientset, ns string, deploymentName string) (err error) {
+	common.Log.Info(fmt.Sprintf("请求删除单个deployment：%v,namespace:%v", deploymentName, ns))
+	return client.AppsV1().Deployments(ns).Delete(
+		context.TODO(),
+		deploymentName,
+		metav1.DeleteOptions{},
+	)
+}
+
+func ScaleDeployment(client *kubernetes.Clientset, ns string, deploymentName string, scaleNumber int32) (err error) {
+	common.Log.Info(fmt.Sprintf("start scale of %v deployment in %v namespace", deploymentName, ns))
+	scaleData, err := client.AppsV1().Deployments(ns).GetScale(
+		context.TODO(),
+		deploymentName,
+		metav1.GetOptions{},
+	)
+	common.Log.Info(fmt.Sprintf("The deployment has changed from %v to %v", scaleData.Spec.Replicas, scaleNumber))
+
+	scale := autoscalingv1.Scale{
+		TypeMeta:   scaleData.TypeMeta,
+		ObjectMeta: scaleData.ObjectMeta,
+		Spec:       autoscalingv1.ScaleSpec{Replicas: scaleNumber},
+		Status:     scaleData.Status,
+	}
+	_, err = client.AppsV1().Deployments(ns).UpdateScale(
+		context.TODO(),
+		deploymentName,
+		&scale,
+		metav1.UpdateOptions{})
+	if err != nil {
+		common.Log.Error("扩缩容出现异常", zap.Any("err:", err))
+		return err
+	}
+	return nil
+}
+
+func RestartDeployment(client *kubernetes.Clientset, deploymentName string, namespace string) (err error) {
+	common.
 }

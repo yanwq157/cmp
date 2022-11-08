@@ -33,4 +33,5 @@ var ListEverything = metaV1.ListOptions{
 
 const (
 	ResourceKindDeployment = "deployment"
+	ResourceKindPod        = "pod"
 )
