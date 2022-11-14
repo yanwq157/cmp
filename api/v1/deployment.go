@@ -44,6 +44,7 @@ func DeleteCollectionDeployment(c *gin.Context) {
 	err = c.ShouldBindJSON(&deploymentList)
 	if err != nil {
 		response.FailWithMessage(http.StatusNotFound, err.Error(), c)
+		return
 	}
 	err = deployment.DeleteCollectionDeployment(client, deploymentList)
 	if err != nil {
@@ -137,10 +138,55 @@ func RestartDeploymentController(c *gin.Context) {
 		response.FailWithMessage(response.InternalServerError, err.Error(), c)
 		return
 	}
-	err3 := deployment.RestartDeployment(client, restartDeployment.Namespace, restartDeployment.Deployment)
+	err3 := deployment.RestartDeployment(client, restartDeployment.Namespace, restartDeployment.DeploymentName)
 	if err3 != nil {
 		response.FailWithMessage(response.InternalServerError, err.Error(), c)
 	}
 	response.Ok(c)
 	return
+}
+
+func GetDeploymentToServiceController(c *gin.Context) {
+	client, err := pkg.GetClusterId(c)
+	if err != nil {
+		response.FailWithMessage(response.ParamError, err.Error(), c)
+		return
+	}
+
+	var Deployment k8s.RestartDeployment
+	err2 := c.ShouldBindJSON(&Deployment)
+	if err2 != nil {
+		response.FailWithMessage(response.ParamError, err.Error(), c)
+		return
+	}
+
+	data, err := service.GetToService(client, Deployment.Namespace, Deployment.DeploymentName)
+	if err != nil {
+		response.FailWithMessage(response.ERROR, err.Error(), c)
+		return
+	}
+	response.OkWithData(data, c)
+	return
+}
+
+func RollBackDeploymentController(c *gin.Context) {
+	client, err := pkg.GetClusterId(c)
+	if err != nil {
+		response.FailWithMessage(response.ParamError, err.Error(), c)
+		return
+	}
+	var rollback k8s.RollbackDeployment
+	rollbackParamsErr := c.ShouldBindJSON(&rollback)
+	if err != nil {
+		response.FailWithMessage(response.ParamError, rollbackParamsErr.Error(), c)
+		return
+	}
+	rollbackErr := deployment.RollDeployment(client, rollback.DeploymentName, rollback.Namespace, *rollback.ReVersion)
+	common.Log.Info(fmt.Sprintf("rollbackErr: %v", rollbackErr))
+	if rollbackErr != nil {
+		response.FailWithMessage(response.ERROR, err.Error(), c)
+		return
+	}
+	response.Ok(c)
+
 }

@@ -19,6 +19,12 @@ type ScaleDeployment struct {
 }
 
 type RestartDeployment struct {
-	Namespace  string `json:"namespace" binding:"required"`
-	Deployment string `json:"deployment" binding:"required"`
+	Namespace      string `json:"namespace" binding:"required"`
+	DeploymentName string `json:"deploymentName" binding:"required"`
+}
+
+type RollbackDeployment struct {
+	Namespace      string `json:"namespace" binding:"required"`
+	DeploymentName string `json:"deploymentName" binding:"required"`
+	ReVersion      *int64 `json:"reVersion" binding:"required"`
 }

@@ -5,6 +5,7 @@ import (
 	"cmp/model/k8s"
 	k8scommon "cmp/pkg/common"
 	"cmp/pkg/event"
+	"cmp/tools"
 	"context"
 	"fmt"
 	"go.uber.org/zap"
@@ -12,7 +13,10 @@ import (
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	deploymentutil "k8s.io/kubectl/pkg/util/deployment"
+	"time"
 )
 
 type DeploymentList struct {
@@ -123,7 +127,7 @@ func getDeploymentStatus(deployment *apps.Deployment) DeploymentStatus {
 func DeleteCollectionDeployment(client *kubernetes.Clientset, deploymentList []k8s.RemoveDeploymentData) (err error) {
 	common.Log.Info("批量删除deployment开始")
 	for _, v := range deploymentList {
-		common.Log.Info(fmt.Sprintf("delete deployment:%v,ns:%v", v.DeploymentName, v.Namespace))
+		common.Log.Info(fmt.Sprintf("delete deployment：%v, ns: %v", v.DeploymentName, v.Namespace))
 		err := client.AppsV1().Deployments(v.Namespace).Delete(
 			context.TODO(),
 			v.DeploymentName,
@@ -175,5 +179,129 @@ func ScaleDeployment(client *kubernetes.Clientset, ns string, deploymentName str
 }
 
 func RestartDeployment(client *kubernetes.Clientset, deploymentName string, namespace string) (err error) {
-	common.
+	common.Log.Info(fmt.Sprintf("下发应用重启指令，名称空间：%v，无状态应用：%v", namespace, deploymentName))
+	data := fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}}}`, time.Now().String())
+	_, err = client.AppsV1().Deployments(namespace).Patch(
+		context.Background(),
+		deploymentName,
+		types.StrategicMergePatchType,
+		[]byte(data),
+		metav1.PatchOptions{FieldManager: "kubectl-rollout"})
+	if err != nil {
+		common.Log.Error("应用重启失败", zap.Any("err:", err))
+		return err
+	}
+	return nil
+}
+
+func RollDeployment(client *kubernetes.Clientset, deploymentName string, namespace string, reVersion int64) (err error) {
+	common.Log.Info(fmt.Sprintf("应用：%v, 所属空间：%v, 版本回滚到%v", deploymentName, namespace, reVersion))
+	if reVersion < 0 {
+		return revisionNotFoundErr(reVersion)
+	}
+	deployment, err := client.AppsV1().Deployments(namespace).Get(context.TODO(), deploymentName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to retrieve Deployment %s:%v", deploymentName, err)
+	}
+	if deployment.Spec.Paused {
+		return fmt.Errorf("skipped rollback (deployment \"%s\" is paused)", deployment.Name)
+	}
+	if reVersion == 0 {
+		common.Log.Warn("传递回滚版本号是：0，默认回退上一次版本")
+		rsForRevision, err := deploymentRevision(deployment, client, reVersion)
+		if err != nil {
+			return err
+		}
+
+		for k := range rsForRevision.Annotations {
+			if k == "deployment.kubernetes.io/revision" {
+				deployment.Spec.Template = rsForRevision.Spec.Template
+				if _, rollbackErr := client.AppsV1().Deployments(namespace).Update(context.TODO(), deployment, metav1.UpdateOptions{}); rollbackErr != nil {
+					common.Log.Error("版本回退失败", zap.Any("err:", err))
+					return rollbackErr
+				}
+				common.Log.Info("The rollback task was executed successfully")
+				return nil
+			}
+		}
+	}
+
+	selector, err := metav1.LabelSelectorAsSelector(deployment.Spec.Selector)
+	if err != nil {
+		return err
+	}
+	options := metav1.ListOptions{LabelSelector: selector.String()}
+	replicaSetList, err := client.AppsV1().ReplicaSets(namespace).List(context.TODO(), options)
+	if err != nil {
+		return err
+	}
+	if len(replicaSetList.Items) <= 1 {
+		return revisionNotFoundErr(reVersion)
+	}
+
+	for _, v := range replicaSetList.Items {
+		currentVersion := tools.ParseStringToInt64(v.Annotations["deployment.kubernetes.io/revision"])
+		common.Log.Info(fmt.Sprintf("currentVersion: %v", currentVersion))
+		common.Log.Info(fmt.Sprintf("reVersion: %v", reVersion))
+
+		if currentVersion == reVersion {
+			deployment.Spec.Template = v.Spec.Template
+			if _, rollbackErr := client.AppsV1().Deployments(namespace).Update(context.TODO(), deployment, metav1.UpdateOptions{}); rollbackErr != nil {
+				common.Log.Error("版本回退失败", zap.Any("err:", err))
+				return rollbackErr
+			}
+			common.Log.Info("The rollback task was executed successfully")
+			return nil
+		}
+	}
+	return nil
+}
+
+func deploymentRevision(deployment *apps.Deployment, c kubernetes.Interface, toRevision int64) (revision *apps.ReplicaSet, err error) {
+	_, allOldRSs, newRS, err := deploymentutil.GetAllReplicaSets(deployment, c.AppsV1())
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve replica sets from deployment %s:%v", deployment.Name, err)
+	}
+	allRSs := allOldRSs
+	if newRS != nil {
+		allRSs = append(allRSs, newRS)
+	}
+	var (
+		latestReplicaSet   *apps.ReplicaSet
+		latestRevision     = int64(-1)
+		previousReplicaSet *apps.ReplicaSet
+		previousRevision   = int64(-1)
+	)
+	for _, rs := range allRSs {
+		if v, err := deploymentutil.Revision(rs); err == nil {
+			common.Log.Info(fmt.Sprintf("v: %v", v))
+
+			if toRevision == 0 {
+				if latestRevision < v {
+					previousRevision = latestRevision
+					previousReplicaSet = latestReplicaSet
+					latestRevision = v
+					latestReplicaSet = rs
+				} else if previousRevision < v {
+					previousRevision = v
+					previousReplicaSet = rs
+				}
+			} else if toRevision == v {
+				return rs, nil
+			}
+		}
+	}
+	if toRevision > 0 {
+		return nil, revisionNotFoundErr(toRevision)
+	}
+	if previousReplicaSet == nil {
+		return nil, fmt.Errorf("no rollout history found for deployment %q", deployment.Name)
+	}
+
+	return previousReplicaSet, nil
+}
+
+func revisionNotFoundErr(r int64) error {
+	common.Log.Warn("没有找到可回滚版本")
+	return fmt.Errorf("unable to find specified revision %v in history", r)
 }

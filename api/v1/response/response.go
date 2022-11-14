@@ -71,6 +71,9 @@ func Ok(c *gin.Context) {
 func OkWithMessage(message string, c *gin.Context) {
 	ResultOk(SUCCESS, map[string]interface{}{}, message, c)
 }
+func OkWithData(data interface{}, c *gin.Context) {
+	ResultOk(SUCCESS, data, "操作成功", c)
+}
 func OkWithDetailed(data interface{}, message string, c *gin.Context) {
 	ResultOk(SUCCESS, data, message, c)
 }
