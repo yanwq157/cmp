@@ -1,9 +1,43 @@
 package pods
 
 import (
+	"cmp/pkg/common"
+	"cmp/pkg/event"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
 )
+
+func getPodStatusPhase(pod v1.Pod, warnings []common.Event) v1.PodPhase {
+	if pod.Status.Phase == v1.PodFailed {
+		return v1.PodFailed
+	}
+	if pod.Status.Phase == v1.PodSucceeded {
+		return v1.PodSucceeded
+	}
+	ready := false
+	initialized := false
+	for _, c := range pod.Status.Conditions {
+		if c.Type == v1.PodReady {
+			ready = c.Status == v1.ConditionFalse
+		}
+		if c.Type == v1.PodInitialized {
+			initialized = c.Status == v1.ConditionTrue
+		}
+	}
+	if initialized && ready && pod.Status.Phase == v1.PodRunning {
+		return v1.PodRunning
+	}
+
+	if len(warnings) > 0 {
+		return v1.PodFailed
+	}
+	if pod.DeletionTimestamp != nil && pod.Status.Reason == "NodePOrt" {
+		return v1.PodUnknown
+	} else if pod.DeletionTimestamp != nil {
+		return "Terminating"
+	}
+	return v1.PodPending
+}
 
 func getPodStatus(pod v1.Pod) string {
 	restarts := 0
@@ -85,6 +119,32 @@ func getRestartCount(pod v1.Pod) int32 {
 		restartCount += containerStatus.RestartCount
 	}
 	return restartCount
+}
+
+func getStatus(list *v1.PodList, events []v1.Event) common.ResourceStatus {
+	info := common.ResourceStatus{}
+	if list == nil {
+		return info
+	}
+
+	for _, pod := range list.Items {
+		warnings := event.GetPodsEventWarnings(events, []v1.Pod{pod})
+		switch getPodStatusPhase(pod, warnings) {
+		case v1.PodFailed:
+			info.Failed++
+		case v1.PodSucceeded:
+			info.Succeeded++
+		case v1.PodRunning:
+			info.Running++
+		case v1.PodPending:
+			info.Pending++
+		case v1.PodUnknown:
+			info.Unknown++
+		case "Terminating":
+			info.Terminating++
+		}
+	}
+	return info
 }
 
 func hasPodReadyCondition(conditions []v1.PodCondition) bool {

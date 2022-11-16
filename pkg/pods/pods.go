@@ -1,9 +1,13 @@
 package pods
 
 import (
+	"cmp/common"
 	"cmp/model/k8s"
 	k8scommon "cmp/pkg/common"
+	"cmp/pkg/event"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 type PodList struct {
@@ -27,6 +31,49 @@ type Pod struct {
 	NodeName        string            `json:"nodeName"`
 	ContainerImages []string          `json:"containerImages"`
 	PodIP           string            `json:"podIP"`
+}
+
+func GetPodList(client *kubernetes.Clientset, nsQuery *k8scommon.NamespaceQuery) (*PodList, error) {
+	common.Log.Info("Getting list of all pods in the cluster")
+	channels := &k8scommon.ResourceChannels{
+		PodList:   k8scommon.GetPodListChannelWithOptions(client, nsQuery, metav1.ListOptions{}, 1),
+		EventList: k8scommon.GetEventListChannel(client, nsQuery, 1),
+	}
+	return GetPodListFromChannels(channels)
+}
+
+func GetPodListFromChannels(channels *k8scommon.ResourceChannels) (*PodList, error) {
+	pods := <-channels.PodList.List
+	err := <-channels.PodList.Error
+	if err != nil {
+		return nil, err
+	}
+
+	eventList := <-channels.EventList.List
+	err = <-channels.EventList.Error
+	if err != nil {
+		return nil, err
+	}
+
+	podList := ToPodList(pods.Items, eventList.Items)
+	podList.Status = getStatus(pods, eventList.Items)
+	return &podList, nil
+}
+
+func ToPodList(pods []v1.Pod, events []v1.Event) PodList {
+	podList := PodList{
+		Pods: make([]Pod, 0),
+	}
+	//podCells, filteredTotal := dataselect.GenericDataSelectWithFilter(toCells(pods), dsQuery)
+	//pods = fromCells(podCells)
+	//podList.ListMeta = k8s.ListMeta{TotalItems: filteredTotal}
+
+	for _, pod := range pods {
+		warnings := event.GetPodsEventWarnings(events, []v1.Pod{pod})
+		podDetail := ToPod(&pod, warnings)
+		podList.Pods = append(podList.Pods, podDetail)
+	}
+	return podList
 }
 
 func ToPod(pod *v1.Pod, warnings []k8scommon.Event) Pod {

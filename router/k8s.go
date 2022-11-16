@@ -31,5 +31,8 @@ func InitContainerRouter(r *gin.RouterGroup) {
 		K8sClusterRouter.POST("deployment/service", v1.GetDeploymentToServiceController)
 		K8sClusterRouter.POST("deployment/rollback", v1.RollBackDeploymentController)
 
+		K8sClusterRouter.GET("namespace", v1.GetNamespaceList)
+
+		K8sClusterRouter.GET("pod", v1.GetPodsListController)
 	}
 }
